@@ -3,26 +3,42 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# Inizializzazione dati all'avvio
 presenze = []
-print("Inizializzazione completata")  # Qui prima c'era before_first_request / before_serving
+print("Inizializzazione completata")
 
 @app.route("/")
 def index():
-    return render_template("index.html", presenze=presenze)
+    # Passiamo direttamente il colore insieme a ogni presenza
+    presenze_con_colore = []
+    for p in presenze:
+        colore = "green" if p["tipo"] == "Check-in" else "red"
+        presenze_con_colore.append({**p, "colore": colore})
+    return render_template("index.html", presenze=presenze_con_colore)
 
 @app.route("/checkin", methods=["POST"])
 def checkin():
     nome = request.form.get("nome")
     if nome:
-        presenze.append({"nome": nome, "orario": datetime.now().strftime("%H:%M:%S"), "tipo": "Check-in"})
+        now = datetime.now()
+        presenze.append({
+            "nome": nome,
+            "orario": now.strftime("%H:%M:%S"),
+            "tipo": "Check-in",
+            "data": now.strftime("%Y-%m-%d")
+        })
     return redirect(url_for("index"))
 
 @app.route("/checkout", methods=["POST"])
 def checkout():
     nome = request.form.get("nome")
     if nome:
-        presenze.append({"nome": nome, "orario": datetime.now().strftime("%H:%M:%S"), "tipo": "Check-out"})
+        now = datetime.now()
+        presenze.append({
+            "nome": nome,
+            "orario": now.strftime("%H:%M:%S"),
+            "tipo": "Check-out",
+            "data": now.strftime("%Y-%m-%d")
+        })
     return redirect(url_for("index"))
 
 if __name__ == "__main__":
