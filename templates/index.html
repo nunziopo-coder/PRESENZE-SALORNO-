@@ -10,6 +10,13 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
+  <!-- FullCalendar -->
+  <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css' rel='stylesheet' />
+  <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.js'></script>
+
+  <!-- jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
   <script>
     function aggiornaPosizione(formId) {
       if (navigator.geolocation) {
@@ -58,17 +65,18 @@
   <h2>Mappa delle posizioni</h2>
   <div id="map" style="height: 300px; border-radius: 10px;"></div>
 
+  <h2>Calendario presenze</h2>
+  <div id="calendar" style="margin-bottom: 20px;"></div>
+  <button id="exportPdf">Esporta PDF</button>
+
   <script>
     // Inizializza la mappa
     var map = L.map('map').setView([46.244, 11.211], 13);
-
-    // Aggiunge il layer OpenStreetMap
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '© OpenStreetMap'
     }).addTo(map);
 
-    // Aggiunge i marker dal backend Flask
     {% for p in presenze %}
       {% if p.lat and p.lon %}
         L.marker([{{ p.lat }}, {{ p.lon }}])
@@ -76,6 +84,34 @@
           .bindPopup("<b>{{ p.nome }}</b><br>{{ p.tipo }} alle {{ p.orario }}");
       {% endif %}
     {% endfor %}
+
+    // Inizializza FullCalendar
+    document.addEventListener('DOMContentLoaded', function() {
+        var calendarEl = document.getElementById('calendar');
+        var events = [
+            {% for p in presenze %}
+                { title: '{{ p.nome }} - {{ p.tipo }}', start: '{{ p.data }}', color: '{{ "green" if p.tipo=="Check-In" else "red" }}' },
+            {% endfor %}
+        ];
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            events: events
+        });
+        calendar.render();
+    });
+
+    // Esportazione PDF
+    document.getElementById('exportPdf').addEventListener('click', () => {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.text("Report Presenze - Comune di Salorno", 10, 10);
+        let y = 20;
+        {% for p in presenze %}
+            doc.text("{{ p.nome }} - {{ p.tipo }} alle {{ p.orario }}", 10, y);
+            y += 10;
+        {% endfor %}
+        doc.save("presenze.pdf");
+    });
   </script>
 </body>
 </html>
