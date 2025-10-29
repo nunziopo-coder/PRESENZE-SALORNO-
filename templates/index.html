@@ -32,10 +32,23 @@
       }
     }
   </script>
+
+  <style>
+    /* Assicura che mappa e calendario siano responsive su iPhone */
+    #map, #calendar {
+      width: 100%;
+      max-width: 100%;
+      margin-bottom: 20px;
+    }
+    #calendar {
+      height: 400px;
+    }
+  </style>
 </head>
 <body>
   <h1>Presenze Polizia Locale - Comune di Salorno</h1>
 
+  <!-- Check-In -->
   <form id="formCheckin" action="/checkin" method="POST" onsubmit="event.preventDefault(); aggiornaPosizione('formCheckin');">
     <input type="text" name="nome" placeholder="Nome agente" required>
     <input type="hidden" name="lat">
@@ -43,6 +56,7 @@
     <button type="submit">Check-In</button>
   </form>
 
+  <!-- Check-Out -->
   <form id="formCheckout" action="/checkout" method="POST" onsubmit="event.preventDefault(); aggiornaPosizione('formCheckout');">
     <input type="text" name="nome" placeholder="Nome agente" required>
     <input type="hidden" name="lat">
@@ -62,15 +76,17 @@
     {% endfor %}
   </ul>
 
+  <!-- Mappa -->
   <h2>Mappa delle posizioni</h2>
   <div id="map" style="height: 300px; border-radius: 10px;"></div>
 
+  <!-- Calendario -->
   <h2>Calendario presenze</h2>
-  <div id="calendar" style="margin-bottom: 20px;"></div>
+  <div id="calendar"></div>
   <button id="exportPdf">Esporta PDF</button>
 
   <script>
-    // Inizializza la mappa
+    // Inizializza mappa Leaflet
     var map = L.map('map').setView([46.244, 11.211], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
@@ -85,17 +101,32 @@
       {% endif %}
     {% endfor %}
 
-    // Inizializza FullCalendar
+    // Inizializza FullCalendar con popup al tap per iPhone
     document.addEventListener('DOMContentLoaded', function() {
         var calendarEl = document.getElementById('calendar');
         var events = [
             {% for p in presenze %}
-                { title: '{{ p.nome }} - {{ p.tipo }}', start: '{{ p.data }}', color: '{{ p.colore }}' },
+                {
+                  title: '{{ p.nome }} - {{ p.tipo }}',
+                  start: '{{ p.data }}',
+                  color: '{{ p.colore }}',
+                  orario: '{{ p.orario }}',
+                  lat: '{{ p.lat }}',
+                  lon: '{{ p.lon }}'
+                },
             {% endfor %}
         ];
+
         var calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
-            events: events
+            events: events,
+            eventClick: function(info) {
+                let msg = info.event.title + "\nOrario: " + info.event.extendedProps.orario;
+                if(info.event.extendedProps.lat && info.event.extendedProps.lon){
+                    msg += "\nPosizione: " + info.event.extendedProps.lat + ", " + info.event.extendedProps.lon;
+                }
+                alert(msg); // Popup al tap su iPhone
+            }
         });
         calendar.render();
     });
