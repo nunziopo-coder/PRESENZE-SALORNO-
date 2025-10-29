@@ -6,7 +6,7 @@
   <title>Presenze Polizia Locale - Comune di Salorno</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
-  <!-- Fogli di stile per la mappa -->
+  <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
@@ -16,6 +16,26 @@
 
   <!-- jsPDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    #map, #calendar {
+      width: 100%;
+      max-width: 100%;
+      margin-bottom: 20px;
+    }
+    #calendar {
+      height: 400px;
+    }
+
+    /* Animazione marker lampeggiante */
+    .blink-marker {
+      animation: blink 1s ease-in-out 3;
+    }
+    @keyframes blink {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.5; }
+    }
+  </style>
 
   <script>
     function aggiornaPosizione(formId) {
@@ -32,18 +52,6 @@
       }
     }
   </script>
-
-  <style>
-    /* Assicura che mappa e calendario siano responsive su iPhone */
-    #map, #calendar {
-      width: 100%;
-      max-width: 100%;
-      margin-bottom: 20px;
-    }
-    #calendar {
-      height: 400px;
-    }
-  </style>
 </head>
 <body>
   <h1>Presenze Polizia Locale - Comune di Salorno</h1>
@@ -93,15 +101,25 @@
       attribution: '© OpenStreetMap'
     }).addTo(map);
 
+    // Funzione per aggiungere marker animato
+    function aggiungiMarkerAnimato(lat, lon, nome, tipo, orario) {
+        var marker = L.marker([lat, lon]).addTo(map)
+            .bindPopup("<b>" + nome + "</b><br>" + tipo + " alle " + orario);
+        var el = marker._icon;
+        if(el){
+            el.classList.add('blink-marker');
+            setTimeout(() => el.classList.remove('blink-marker'), 3000);
+        }
+    }
+
+    // Aggiungi tutti i marker
     {% for p in presenze %}
       {% if p.lat and p.lon %}
-        L.marker([{{ p.lat }}, {{ p.lon }}])
-          .addTo(map)
-          .bindPopup("<b>{{ p.nome }}</b><br>{{ p.tipo }} alle {{ p.orario }}");
+        aggiungiMarkerAnimato({{ p.lat }}, {{ p.lon }}, "{{ p.nome }}", "{{ p.tipo }}", "{{ p.orario }}");
       {% endif %}
     {% endfor %}
 
-    // Inizializza FullCalendar con popup al tap per iPhone
+    // FullCalendar con popup al tap
     document.addEventListener('DOMContentLoaded', function() {
         var calendarEl = document.getElementById('calendar');
         var events = [
@@ -125,22 +143,37 @@
                 if(info.event.extendedProps.lat && info.event.extendedProps.lon){
                     msg += "\nPosizione: " + info.event.extendedProps.lat + ", " + info.event.extendedProps.lon;
                 }
-                alert(msg); // Popup al tap su iPhone
+                alert(msg); // Popup iPhone
             }
         });
         calendar.render();
     });
 
-    // Esportazione PDF
+    // Esportazione PDF multipagina con posizione
     document.getElementById('exportPdf').addEventListener('click', () => {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         doc.text("Report Presenze - Comune di Salorno", 10, 10);
+
         let y = 20;
+        const lineHeight = 10;
+        const pageHeight = 280;
+
         {% for p in presenze %}
-            doc.text("{{ p.nome }} - {{ p.tipo }} alle {{ p.orario }}", 10, y);
-            y += 10;
+            let line = "{{ p.nome }} - {{ p.tipo }} alle {{ p.orario }}";
+            {% if p.lat and p.lon %}
+            line += " 📍 Posizione: {{ p.lat }}, {{ p.lon }}";
+            {% endif %}
+
+            if (y > pageHeight) {
+                doc.addPage();
+                y = 20;
+            }
+
+            doc.text(line, 10, y);
+            y += lineHeight;
         {% endfor %}
+
         doc.save("presenze.pdf");
     });
   </script>
