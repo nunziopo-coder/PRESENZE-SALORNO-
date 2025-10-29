@@ -3,14 +3,9 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# Dati simulati per esempio: lista presenze agenti
+# Inizializzazione dati all'avvio
 presenze = []
-
-# Sostituzione di before_first_request con before_serving (Flask 3)
-@app.before_serving
-def init_db():
-    # Qui puoi inizializzare dati, collegamenti a DB ecc.
-    print("Inizializzazione completata")
+print("Inizializzazione completata")  # Qui prima c'era before_first_request / before_serving
 
 @app.route("/")
 def index():
