@@ -90,7 +90,7 @@
         var calendarEl = document.getElementById('calendar');
         var events = [
             {% for p in presenze %}
-                { title: '{{ p.nome }} - {{ p.tipo }}', start: '{{ p.data }}', color: '{{ "green" if p.tipo=="Check-In" else "red" }}' },
+                { title: '{{ p.nome }} - {{ p.tipo }}', start: '{{ p.data }}', color: '{{ p.colore }}' },
             {% endfor %}
         ];
         var calendar = new FullCalendar.Calendar(calendarEl, {
