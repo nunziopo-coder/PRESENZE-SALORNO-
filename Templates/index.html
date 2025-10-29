@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Presenze Polizia Locale - Salorno</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <h1>Presenze Polizia Locale - Comune di Salorno</h1>
+
+  <form action="/checkin" method="POST">
+    <input type="text" name="nome" placeholder="Nome agente" required>
+    <button type="submit">Check-In</button>
+  </form>
+
+  <form action="/checkout" method="POST">
+    <input type="text" name="nome" placeholder="Nome agente" required>
+    <button type="submit">Check-Out</button>
+  </form>
+
+  <h2>Registro presenze</h2>
+  <ul>
+    {% for p in presenze %}
+      <li>{{ p.nome }} - {{ p.tipo }} alle {{ p.orario }}</li>
+    {% endfor %}
+  </ul>
+</body>
+</html>
