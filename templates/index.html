@@ -3,27 +3,79 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Presenze Polizia Locale - Salorno</title>
+  <title>Presenze Polizia Locale - Comune di Salorno</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  <!-- Fogli di stile per la mappa -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <script>
+    function aggiornaPosizione(formId) {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(pos) {
+          document.querySelector(`#${formId} input[name=lat]`).value = pos.coords.latitude;
+          document.querySelector(`#${formId} input[name=lon]`).value = pos.coords.longitude;
+          document.getElementById(formId).submit();
+        }, function() {
+          alert("Impossibile ottenere la posizione. Attiva il GPS o consenti la localizzazione.");
+        });
+      } else {
+        alert("Geolocalizzazione non supportata dal browser.");
+      }
+    }
+  </script>
 </head>
 <body>
   <h1>Presenze Polizia Locale - Comune di Salorno</h1>
 
-  <form action="/checkin" method="POST">
+  <form id="formCheckin" action="/checkin" method="POST" onsubmit="event.preventDefault(); aggiornaPosizione('formCheckin');">
     <input type="text" name="nome" placeholder="Nome agente" required>
+    <input type="hidden" name="lat">
+    <input type="hidden" name="lon">
     <button type="submit">Check-In</button>
   </form>
 
-  <form action="/checkout" method="POST">
+  <form id="formCheckout" action="/checkout" method="POST" onsubmit="event.preventDefault(); aggiornaPosizione('formCheckout');">
     <input type="text" name="nome" placeholder="Nome agente" required>
+    <input type="hidden" name="lat">
+    <input type="hidden" name="lon">
     <button type="submit">Check-Out</button>
   </form>
 
   <h2>Registro presenze</h2>
   <ul>
     {% for p in presenze %}
-      <li>{{ p.nome }} - {{ p.tipo }} alle {{ p.orario }}</li>
+      <li>
+        {{ p.nome }} - {{ p.tipo }} alle {{ p.orario }}
+        {% if p.lat and p.lon %}
+          <br><small>📍 Posizione: {{ p.lat }}, {{ p.lon }}</small>
+        {% endif %}
+      </li>
     {% endfor %}
   </ul>
+
+  <h2>Mappa delle posizioni</h2>
+  <div id="map" style="height: 300px; border-radius: 10px;"></div>
+
+  <script>
+    // Inizializza la mappa
+    var map = L.map('map').setView([46.244, 11.211], 13);
+
+    // Aggiunge il layer OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    // Aggiunge i marker dal backend Flask
+    {% for p in presenze %}
+      {% if p.lat and p.lon %}
+        L.marker([{{ p.lat }}, {{ p.lon }}])
+          .addTo(map)
+          .bindPopup("<b>{{ p.nome }}</b><br>{{ p.tipo }} alle {{ p.orario }}");
+      {% endif %}
+    {% endfor %}
+  </script>
 </body>
 </html>
